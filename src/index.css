@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1a1a1a;
+  --color-secondary: #c9a96e;
+  --color-accent: #b8860b;
+  --color-cream: #faf8f5;
+  --color-soft-gray: #f5f5f5;
+  --color-muted: #8a8a8a;
+  --color-dark: #0d0d0d;
+  --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Playfair Display', 'Georgia', serif;
+}
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    font-family: var(--font-sans);
+    background-color: #ffffff;
+    color: var(--color-primary);
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 hover:bg-dark hover:shadow-lg active:scale-95;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 hover:bg-accent hover:shadow-lg active:scale-95;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+  }
+  
+  .section-padding {
+    @apply px-4 py-8 md:px-8 md:py-12 lg:px-16 lg:py-16;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
