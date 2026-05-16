@@ -2,31 +2,44 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const SignUpPage = () => {
   const navigate = useNavigate();
+  const { signUp } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState('');
 
   const validate = () => {
     const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
     if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
     setIsLoading(true);
-    setTimeout(() => {
+    setApiError('');
+    try {
+      const mode = await signUp({ name: formData.name, email: formData.email, password: formData.password });
+      if (mode === 'dev') {
+        navigate('/');
+      } else {
+        navigate('/signin', { state: { message: 'Account created! Please check your email to confirm.' } });
+      }
+    } catch (err) {
+      setApiError(err.message || 'Failed to create account');
+    } finally {
       setIsLoading(false);
-      navigate('/signin');
-    }, 1000);
+    }
   };
 
   const handleChange = (e) => {
@@ -60,6 +73,12 @@ const SignUpPage = () => {
             <p className="text-muted text-sm">Join BADSHA for exclusive offers</p>
           </div>
 
+          {apiError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+              {apiError}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">Full Name</label>
@@ -75,6 +94,7 @@ const SignUpPage = () => {
                   placeholder="Your full name"
                 />
               </div>
+              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
 
             <div>

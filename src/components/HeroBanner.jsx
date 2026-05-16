@@ -24,7 +24,7 @@ const HeroBanner = () => {
   };
 
   const next = () => goTo((current + 1) % banners.length);
-  const prev = () => goTo((current - 1 + banners.length) % current.length);
+  const prev = () => goTo((current - 1 + banners.length) % banners.length);
 
   const handleCta = () => {
     navigate(banners[current].ctaLink);

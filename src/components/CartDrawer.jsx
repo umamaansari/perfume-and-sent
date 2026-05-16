@@ -47,7 +47,11 @@ const CartDrawer = () => {
                 <div className="space-y-4">
                   {cart.map((item) => (
                     <div key={`${item.id}-${item.size}`} className="flex gap-4 p-3 bg-soft-gray rounded-2xl">
-                      <img src={item.images[0]} alt={item.name} className="w-20 h-20 object-cover rounded-xl" />
+                      <img
+                        src={item.images?.[0] || ''}
+                        alt={item.name}
+                        className="w-20 h-20 object-cover rounded-xl"
+                      />
                       <div className="flex-1">
                         <h3 className="font-bold text-sm">{item.name}</h3>
                         <p className="text-xs text-muted">{item.size}</p>

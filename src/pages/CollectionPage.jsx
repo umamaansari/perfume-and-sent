@@ -1,13 +1,44 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import ProductGrid from '../components/ProductGrid';
-import { products, categories } from '../data/products';
+import { productService } from '../services/productService';
+import { categoryService } from '../services/categoryService';
 
 const CollectionPage = () => {
   const { type } = useParams();
   const navigate = useNavigate();
-  const category = categories.find(c => c.id === type);
-  const collectionProducts = products.filter(p => p.series === type);
+  const [category, setCategory] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const [cat, prods] = await Promise.all([
+          categoryService.getById(type),
+          productService.getBySeries(type),
+        ]);
+        setCategory(cat || { id: type, name: type.charAt(0).toUpperCase() + type.slice(1), description: '' });
+        setProducts(prods);
+      } catch (err) {
+        console.error('Failed to load collection:', err);
+        setCategory(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [type]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-secondary/20 border-t-secondary rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!category) {
     return (
@@ -34,12 +65,12 @@ const CollectionPage = () => {
         </motion.div>
       </section>
 
-      {collectionProducts.length === 0 ? (
+      {products.length === 0 ? (
         <div className="section-padding text-center">
           <p className="text-muted text-lg">No products in this collection yet</p>
         </div>
       ) : (
-        <ProductGrid products={collectionProducts} title="" showViewAll={false} />
+        <ProductGrid products={products} title="" showViewAll={false} />
       )}
     </motion.main>
   );

@@ -2,71 +2,65 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
-import { products } from '../data/products';
+import { productService } from '../services/productService';
 
 const ShopPage = () => {
   const [searchParams] = useSearchParams();
-  const [filteredProducts, setFilteredProducts] = useState(products);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState('default');
   const [activeFilter, setActiveFilter] = useState('');
 
   useEffect(() => {
-    let result = [...products];
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      try {
+        const search = searchParams.get('search');
+        const category = searchParams.get('category');
+        const maxPrice = searchParams.get('maxPrice');
+        const minPrice = searchParams.get('minPrice');
+        const isNew = searchParams.get('new');
+        const isGifting = searchParams.get('gifting');
+        const productType = searchParams.get('productType');
+        const series = searchParams.get('series');
+        const color = searchParams.get('color');
 
-    const search = searchParams.get('search');
-    const category = searchParams.get('category');
-    const maxPrice = searchParams.get('maxPrice');
-    const isNew = searchParams.get('new');
-    const isGifting = searchParams.get('gifting');
+        let filterLabel = 'All Perfumes';
+        if (search) filterLabel = `Search: "${search}"`;
+        else if (category) {
+          const labels = { oud: 'Oud Perfumes', bundles: 'Bundles', testers: 'Tester Boxes', bath: 'Bath & Body', signature: 'Signature Series', dessert: 'Dessert Series', men: 'Men', women: 'Women', unisex: 'Unisex' };
+          filterLabel = labels[category] || `${category.charAt(0).toUpperCase() + category.slice(1)}`;
+        }
+        else if (maxPrice) filterLabel = 'Under Rs. 1,600';
+        else if (isNew) filterLabel = 'New Arrivals';
+        else if (isGifting) filterLabel = 'Gifting';
+        else if (series) filterLabel = series;
+        else if (productType) filterLabel = productType;
 
-    let filterLabel = 'All Perfumes';
+        setActiveFilter(filterLabel);
 
-    if (search) {
-      result = result.filter(p =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.subtitle.toLowerCase().includes(search.toLowerCase()) ||
-        p.description.toLowerCase().includes(search.toLowerCase())
-      );
-      filterLabel = `Search: "${search}"`;
-    }
-
-    if (category) {
-      if (['oud', 'bundles', 'testers', 'bath'].includes(category)) {
-        result = result.filter(p => p.series === category);
-        const labels = { oud: 'Oud Perfumes', bundles: 'Bundles', testers: 'Tester Boxes', bath: 'Bath & Body' };
-        filterLabel = labels[category] || category;
-      } else {
-        result = result.filter(p => p.badge.toLowerCase() === category);
-        filterLabel = `${category.charAt(0).toUpperCase() + category.slice(1)}`;
+        const result = await productService.getFiltered({
+          search, category, maxPrice, minPrice, sortBy, isNew: isNew === 'true', isGifting: isGifting === 'true',
+          productType, series, color,
+        });
+        setFilteredProducts(result);
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+        setFilteredProducts([]);
+      } finally {
+        setIsLoading(false);
       }
-    }
-
-    if (maxPrice) {
-      result = result.filter(p => p.price <= parseInt(maxPrice));
-      filterLabel = 'Under Rs. 1,600';
-    }
-
-    if (isNew) {
-      result = result.filter(p => p.category === 'new');
-      filterLabel = 'New Arrivals';
-    }
-
-    if (isGifting) {
-      result = result.filter(p => p.category === 'bestseller' || p.subtitle.includes('Limited') || p.subtitle.includes('Exclusive'));
-      filterLabel = 'Gifting';
-    }
-
-    if (sortBy === 'price-low') {
-      result.sort((a, b) => a.price - b.price);
-    } else if (sortBy === 'price-high') {
-      result.sort((a, b) => b.price - a.price);
-    } else if (sortBy === 'rating') {
-      result.sort((a, b) => b.rating - a.rating);
-    }
-
-    setFilteredProducts(result);
-    setActiveFilter(filterLabel);
+    };
+    fetchProducts();
   }, [searchParams, sortBy]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-secondary/20 border-t-secondary rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <motion.main

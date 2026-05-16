@@ -1,22 +1,37 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { ChevronLeft, CreditCard, Truck, MapPin, CheckCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { orderService } from '../services/orderService';
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
-  const { cart, total, itemCount, removeFromCart, updateQuantity } = useCart();
+  const { user } = useAuth();
+  const { cart, total, itemCount, removeFromCart } = useCart();
   const [step, setStep] = useState('shipping');
   const [isLoading, setIsLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
+  const [orderNumber, setOrderNumber] = useState('');
 
-  const [shipping, setShipping] = useState({ name: '', email: '', phone: '', address: '', city: '', zip: '' });
+  const [shipping, setShipping] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: '',
+    address: '',
+    city: '',
+    zip: ''
+  });
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [errors, setErrors] = useState({});
 
   const deliveryFee = total >= 2000 ? 0 : 150;
   const grandTotal = total + deliveryFee;
+
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
 
   const handleShippingChange = (e) => {
     setShipping(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -42,12 +57,32 @@ const CheckoutPage = () => {
     }
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const fullAddress = `${shipping.address}, ${shipping.city}, ${shipping.zip}`;
+      const order = await orderService.createOrder(user.id, {
+        items: cart.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          size: item.size,
+          quantity: item.quantity,
+        })),
+        total_amount: grandTotal,
+        address: fullAddress,
+        phone: shipping.phone,
+      });
+      setOrderNumber(`SNS-${order.id}`);
       setOrderComplete(true);
-    }, 2000);
+      localStorage.removeItem('guest_cart');
+      localStorage.removeItem('sns_cart');
+    } catch (err) {
+      console.error('Order failed:', err);
+      alert('Failed to place order. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleBack = () => {
@@ -92,7 +127,7 @@ const CheckoutPage = () => {
             Thank you for your order. We will send you a confirmation email shortly.
           </p>
           <div className="bg-soft-gray rounded-xl p-4 mb-6">
-            <p className="text-sm font-medium">Order #SNS-{Math.floor(Math.random() * 90000) + 10000}</p>
+            <p className="text-sm font-medium">Order #{orderNumber}</p>
             <p className="text-xs text-muted mt-1">Estimated delivery: 3-5 business days</p>
           </div>
           <button onClick={() => navigate('/')} className="btn-primary w-full">
@@ -116,7 +151,6 @@ const CheckoutPage = () => {
           {step === 'shipping' ? 'Back to Cart' : 'Back to Shipping'}
         </button>
 
-        {/* Progress Steps */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center gap-2">
             <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${step === 'shipping' ? 'bg-primary text-white' : 'bg-green-100 text-green-700'}`}>
@@ -132,7 +166,6 @@ const CheckoutPage = () => {
         </div>
 
         <div className="grid md:grid-cols-5 gap-8">
-          {/* Form Section */}
           <div className="md:col-span-3">
             <motion.div
               key={step}
@@ -262,25 +295,6 @@ const CheckoutPage = () => {
                       </label>
                     ))}
                   </div>
-
-                  {paymentMethod === 'card' && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 mt-4 pt-4 border-t">
-                      <div>
-                        <label className="block text-sm font-medium mb-1.5">Card Number</label>
-                        <input type="text" className="w-full px-4 py-3 bg-soft-gray rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-all" placeholder="1234 5678 9012 3456" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-1.5">Expiry</label>
-                          <input type="text" className="w-full px-4 py-3 bg-soft-gray rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-all" placeholder="MM/YY" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1.5">CVV</label>
-                          <input type="text" className="w-full px-4 py-3 bg-soft-gray rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-all" placeholder="123" />
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
                 </div>
               )}
 
@@ -303,7 +317,6 @@ const CheckoutPage = () => {
             </motion.div>
           </div>
 
-          {/* Order Summary */}
           <div className="md:col-span-2">
             <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-24">
               <h3 className="font-display font-bold mb-4">Order Summary ({itemCount} items)</h3>
